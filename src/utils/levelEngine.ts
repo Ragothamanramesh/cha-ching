@@ -1,110 +1,105 @@
 import type { Level, UserGoal, GoalType, Tier } from '@/types/gamification';
 
-// ── Milestone ratios: logarithmic curve so early wins come fast ────────────────
-// 7 levels: 0.3% · 1.5% · 5% · 12% · 25% · 50% · 100%
+// ── Milestone ratios: logarithmic — early wins hit fast ───────────────────────
 const RATIOS = [0.003, 0.015, 0.05, 0.12, 0.25, 0.50, 1.0];
 
 function round(n: number): number {
-  if (n <    500) return Math.ceil(n / 50)     * 50;
-  if (n <   2000) return Math.ceil(n / 100)    * 100;
-  if (n <  10000) return Math.ceil(n / 500)    * 500;
-  if (n < 100000) return Math.ceil(n / 1000)   * 1000;
-  return           Math.ceil(n / 5000)          * 5000;
+  if (n <    500) return Math.ceil(n / 50)   * 50;
+  if (n <   2000) return Math.ceil(n / 100)  * 100;
+  if (n <  10000) return Math.ceil(n / 500)  * 500;
+  if (n < 100000) return Math.ceil(n / 1000) * 1000;
+  return           Math.ceil(n / 5000)        * 5000;
 }
 
-// ── Tier bands ─────────────────────────────────────────────────────────────────
-function tier(levelIndex: number): Tier {
-  const tiers: Tier[] = ['bronze', 'bronze', 'silver', 'silver', 'gold', 'platinum', 'legend'];
-  return tiers[levelIndex] ?? 'legend';
+function tier(i: number): Tier {
+  const t: Tier[] = ['bronze', 'bronze', 'silver', 'silver', 'gold', 'platinum', 'legend'];
+  return t[i] ?? 'legend';
 }
 
-// ── Per-goal templates: [name, emoji, tagline] for levels 1-7 ─────────────────
-type Template = [string, string, string];
+type Template = [string, string, string]; // [name, emoji, tagline]
 
+// ── Gen Z era names ────────────────────────────────────────────────────────────
 const TEMPLATES: Record<GoalType, Template[]> = {
   home: [
-    ['First Seed',      '🌱', 'You decided. That already puts you ahead.'],
-    ['Blueprint Stage', '📋', 'Serious people have blueprints.'],
-    ['Foundation Fund', '🏗️', 'Real money, real momentum.'],
-    ['Bank Ready',      '🏦', 'The bank is starting to notice.'],
-    ['Down Payment',    '🔐', 'This is where it gets real.'],
-    ['Final Stretch',   '🛣️', "You can see it from here."],
-    ['Keys in Hand',    '🏠', 'You built this. Every dollar of it.'],
+    ['Rent Era',          '💸', "throwing money at landlords rn. not for long."],
+    ['Saving Era',        '🏦', "actually putting money away. different breed."],
+    ['Down Payment Era',  '🔑', "getting closer to the real thing fr."],
+    ['Pre-Approval Era',  '📋', "banks starting to respect ur bag."],
+    ['Offer Season',      '🤝', "making moves. this is real life."],
+    ['Closing Era',       '📝', "almost there bestie. so close."],
+    ['Homeowner Era',     '🏡', "no more landlords. ever. you did that."],
   ],
   car: [
-    ['Reserved It',        '🎯', 'The intention is set. Now back it up.'],
-    ['Gears Turning',      '⚙️', 'Momentum is a beautiful thing.'],
-    ['Fast Charging',      '⚡', 'This is where it accelerates.'],
-    ['Test Drive Ready',   '🛞', 'You could walk in today.'],
-    ['Full Send',          '🚗', "It's yours. Go get it."],
-    // car goals often have 5 levels - pad to 7 if target is large
-    ['Ownership',          '🔑', 'Paid in full. No monthly payments.'],
-    ['Dream Garage',       '🏁', 'The car AND the freedom it represents.'],
+    ['Bus Pass Era',      '🚌', "uber and pray. this ends soon."],
+    ['Beater Era',        '🚗', "it runs. that's enough for now."],
+    ['First Whip Era',    '🔑', "ur own car. no one can take that from u."],
+    ['Upgrade Era',       '⬆️', "leveling up the ride. heads turning."],
+    ['Nice Car Era',      '😤', "turning heads on the street fr."],
+    ['Dream Car Loading', '💭', "almost pulling up in it. for real this time."],
+    ['Pull Up Era',       '🏁', "u bought ur dream car. periodt."],
   ],
   retirement: [
-    ['Seed Planted',    '🌱', 'Compounding starts now, not later.'],
-    ['Growing',         '🌿', "Time in the market beats timing it."],
-    ['Strong Roots',    '🌳', 'You can feel the compound effect now.'],
-    ['Feeling Warm',    '☀️', 'Six figures. The math is starting to work for you.'],
-    ['Can See the Beach','🏝️', "You're closer than most people ever get."],
-    ['Almost Free',     '🌅', 'One more push. This is it.'],
-    ['Freedom',         '🌴', 'You did what most only talk about.'],
+    ['Survival Era',      '😅', "paycheck to paycheck but ur building now."],
+    ['Stack Era',         '💰', "actually saving. not everyone does this."],
+    ['Invest Era',        '📈', "money making money. the cheat code."],
+    ['Coast Era',         '🏄', "portfolio doing the work while u sleep."],
+    ['FI Era',            '🎯', "financially independent. no cap."],
+    ['Early Retire Loading','🌴', "almost out of the rat race fr."],
+    ['Free Era',          '👑', "retired early. legend behavior."],
   ],
   debt: [
-    ['First Dent',       '⛏️', 'Every dollar here is a dollar of freedom.'],
-    ['Gaining Ground',   '📉', 'The balance is moving. Keep going.'],
-    ['Halfway There',    '⚖️', 'You crossed the midpoint. Most quit here.'],
-    ['Final Third',      '🏃', 'The finish line is in view.'],
-    ['Last Payment',     '✂️', 'One final cut and you\'re done forever.'],
-    ['Debt Free',        '🎉', 'No one owns a piece of your future anymore.'],
-    ['Building Wealth',  '📈', 'Now every dollar works for you, not against.'],
+    ['Deep Debt Era',     '😭', "it's giving financial anxiety. we fixin it."],
+    ['Chipping Away Era', '⛏️', "making a dent. consistency is everything."],
+    ['Momentum Era',      '🔥', "the debt is scared of u now."],
+    ['Halfway Era',       '📊', "crossed the midpoint. most ppl quit here."],
+    ['Almost Free Era',   '✂️', "cutting the last chains. u can feel it."],
+    ['Final Push Era',    '💪', "so close u can taste it. don't stop."],
+    ['Debt Free Era',     '🎉', "zero debt. main character. u did that."],
   ],
   travel: [
-    ['Dream Set',        '✏️', 'Wanting it clearly is the first step.'],
-    ['Passport Ready',   '📔', 'You\'re serious about this.'],
-    ['Flights Saved',    '✈️', 'The ticket is within reach.'],
-    ['Hotels Covered',   '🏨', 'Accommodation sorted. Now the experiences.'],
-    ['Full Trip Funded', '🌍', 'Everything paid. You just have to go.'],
-    ['Return + Explore', '🗺️', 'The original trip plus more.'],
-    ['Nomad Level',      '🌏', 'You don\'t have to stop.'],
+    ['Google Maps Era',   '🗺️', "window shopping destinations lol. not for long."],
+    ['Passport Era',      '🛂', "first stamps incoming. it's starting."],
+    ['Weekend Trip Era',  '✈️', "catching flights not feelings. facts."],
+    ['Euro Trip Era',     '🌍', "living in the cities. u eat well."],
+    ['Long Haul Era',     '🌏', "southeast asia unlocked. go crazy."],
+    ['Nomad Loading Era', '💻', "work from anywhere is loading..."],
+    ['Full Nomad Era',    '🌐', "the world is ur office. literally."],
   ],
   business: [
-    ['Idea Backed',      '💡', 'You\'re funding the vision, not just holding it.'],
-    ['MVP Budget',       '⚒️', 'Enough to build something real.'],
-    ['Launch Ready',     '🚀', 'You could open the doors today.'],
-    ['First Hire',       '🤝', 'Big enough to bring someone else in.'],
-    ['Scale Capital',    '📊', 'Now you grow, not just survive.'],
-    ['Series-Ready',     '💼', 'The kind of number that gets meetings.'],
-    ['Built to Last',    '🏢', 'You built something that outlasts you.'],
+    ['Idea Era',          '💡', "it's just a thought rn. fund the vision."],
+    ['Side Hustle Era',   '🌙', "building after the 9-5. that's discipline."],
+    ['Launch Era',        '🚀', "shipped. it's real now. no more excuses."],
+    ['Revenue Era',       '💵', "getting that bag. ur a real founder."],
+    ['Scale Era',         '📈', "growing fr fr. compound everything."],
+    ['Profitable Era',    '🤑', "the numbers are hitting. business is real."],
+    ['Empire Era',        '👑', "u built something that lasts. periodt."],
   ],
   custom: [
-    ['First Step',     '👣', 'The gap between zero and something is everything.'],
-    ['Gaining Speed',  '⚡', 'The habit is forming. Don\'t break it.'],
-    ['Midpoint',       '🎯', 'Halfway. The hardest part is already done.'],
-    ['Three Quarters', '🔥', 'You\'re in the top 10% of people who started.'],
-    ['Almost There',   '🏁', 'So close you can taste it.'],
-    ['Final Push',     '💪', 'One last surge.'],
-    ['Goal Reached',   '🏆', 'You said you would. You did.'],
+    ['Start Era',         '🌱', "every legend starts exactly here."],
+    ['Build Era',         '🏗️', "putting in the work. different mindset."],
+    ['Grind Era',         '💪', "no days off. the gap is closing."],
+    ['Momentum Era',      '🔥', "can't stop won't stop. ur different."],
+    ['Almost Era',        '👀', "so close rn. don't let up."],
+    ['Final Push Era',    '⚡', "this is the one. make it count."],
+    ['Achieved Era',      '🏆', "u said u would. u did. fr."],
   ],
 };
 
-// ── Colour palette cycling through levels ──────────────────────────────────────
+// ── Era colours — neon progression ────────────────────────────────────────────
 const COLOURS = [
-  { color: '#22c55e', glow: 'rgba(34,197,94,0.45)' },
-  { color: '#3b82f6', glow: 'rgba(59,130,246,0.45)' },
-  { color: '#8b5cf6', glow: 'rgba(139,92,246,0.45)' },
-  { color: '#ec4899', glow: 'rgba(236,72,153,0.45)' },
-  { color: '#f59e0b', glow: 'rgba(245,158,11,0.45)' },
-  { color: '#06b6d4', glow: 'rgba(6,182,212,0.45)' },
-  { color: '#fbbf24', glow: 'rgba(251,191,36,0.55)' },
+  { color: '#888899', glow: 'rgba(136,136,153,0.30)' }, // 1 — muted gray
+  { color: '#ff7a00', glow: 'rgba(255,122,0,0.40)'   }, // 2 — orange hustle
+  { color: '#ffd700', glow: 'rgba(255,215,0,0.40)'   }, // 3 — gold
+  { color: '#c8ff00', glow: 'rgba(200,255,0,0.45)'   }, // 4 — lime main char
+  { color: '#00cfff', glow: 'rgba(0,207,255,0.40)'   }, // 5 — electric blue
+  { color: '#ff2d78', glow: 'rgba(255,45,120,0.45)'  }, // 6 — hot pink legend
+  { color: '#ffd700', glow: 'rgba(255,215,0,0.60)'   }, // 7 — gold achieved
 ];
 
 // ── Public API ─────────────────────────────────────────────────────────────────
 export function generateLevels(goal: UserGoal): Level[] {
   const templates = TEMPLATES[goal.type] ?? TEMPLATES.custom;
-  const numLevels = goal.type === 'car' && goal.targetAmount < 60000 ? 5 : 7;
-
-  // Use first numLevels ratios, always end at 1.0
+  const numLevels = 7;
   const ratios = RATIOS.slice(0, numLevels);
   ratios[ratios.length - 1] = 1.0;
 
@@ -116,7 +111,7 @@ export function generateLevels(goal: UserGoal): Level[] {
       : Infinity;
 
     const [name, emoji, tagline] = templates[i] ?? templates[templates.length - 1];
-    const { color, glow } = COLOURS[i % COLOURS.length];
+    const { color, glow } = COLOURS[i];
 
     return {
       level:     i + 1,

@@ -74,8 +74,8 @@ async function fetchKaiMessage(ctx: CoachContext): Promise<string> {
 
 // ── Fallback messages when API is unavailable ──────────────────────────────────
 const FALLBACKS = [
-  "Connect your ANTHROPIC_API_KEY in Vercel to enable personalized coaching.",
-  "Kai is offline — add ANTHROPIC_API_KEY to your Vercel environment to activate.",
+  "add ur GEMINI_API_KEY in Vercel → Settings → Environment Variables to activate kai 👀",
+  "kai is offline rn — add GEMINI_API_KEY to vercel env vars to get personalized coaching",
 ];
 
 // ── Determine today's trigger ──────────────────────────────────────────────────
