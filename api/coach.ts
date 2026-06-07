@@ -1,13 +1,15 @@
-import Anthropic from '@anthropic-ai/sdk';
+// Vercel Edge Function — Kai AI Coach
+// Uses Google Gemini 1.5 Flash (free tier: 15 RPM, 1M tokens/day)
+// Set GEMINI_API_KEY in Vercel → Settings → Environment Variables
 
 export const config = { runtime: 'edge' };
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
+interface KaiChatMessage { role: 'user' | 'assistant'; content: string; }
 
 interface CoachRequest {
   name: string;
   goalTitle: string;
-  goalDescription: string;
+  goalDescription?: string;
   targetAmount: number;
   timelineYears: number;
   portfolioValue: number;
@@ -26,94 +28,116 @@ interface CoachRequest {
   daysToNextLevel: number;
   trigger: string;
   userMessage?: string;
-  history?: { role: 'user' | 'assistant'; content: string }[];
+  history?: KaiChatMessage[];
+}
+
+function fmt(n: number) {
+  if (n >= 1_000_000) return `$${(n/1_000_000).toFixed(2)}M`;
+  if (n >= 1_000)     return `$${(n/1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
 }
 
 function buildSystem(c: CoachRequest): string {
   const pace =
-    c.paceStatus === 'ahead'
-      ? `${c.daysAheadOrBehind} days AHEAD of schedule`
-      : c.paceStatus === 'behind'
-      ? `${c.daysAheadOrBehind} days BEHIND schedule`
-      : 'right on track';
+    c.paceStatus === 'ahead'  ? `${c.daysAheadOrBehind} days AHEAD of schedule` :
+    c.paceStatus === 'behind' ? `${c.daysAheadOrBehind} days BEHIND schedule` :
+    'right on track';
 
-  return `You are Kai — a personal trading coach for ${c.name}.
+  return `You are Kai, a sharp and warm personal finance coach inside the Cha-Ching app.
 
-THEIR GOAL:
-${c.goalDescription}
-Target: $${c.targetAmount.toLocaleString()}
-Timeline: ${c.timelineYears} years
+USER PROFILE
+Name: ${c.name}
+Goal: ${c.goalTitle}${c.goalDescription ? ` — "${c.goalDescription}"` : ''}
+Target: ${fmt(c.targetAmount)} in ${c.timelineYears} year${c.timelineYears !== 1 ? 's' : ''}
 
-TODAY'S DATA (${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}):
-- Portfolio: $${c.portfolioValue.toLocaleString()} — Level ${c.currentLevel}/${c.totalLevels} ("${c.currentLevelName}")
-- Progress to "${c.nextLevelName ?? 'Final Goal'}": ${c.progressPercent.toFixed(0)}% ($${c.amountToNextLevel.toLocaleString()} away)
-- Days to next level at current pace: ${c.daysToNextLevel > 0 ? c.daysToNextLevel + ' days' : 'within reach this week'}
-- Pace: ${pace}
-- Login streak: ${c.loginStreak} days (personal best: ${c.bestStreak})
-- Portfolio change since last update: ${c.portfolioChangePct >= 0 ? '+' : ''}${c.portfolioChangePct.toFixed(1)}%
-- Last portfolio update: ${c.daysSinceLastUpdate === 0 ? 'today' : c.daysSinceLastUpdate + ' days ago'}
-- Trigger context: ${c.trigger}
+CURRENT STATUS
+Portfolio: ${fmt(c.portfolioValue)} (${c.portfolioChangePct > 0 ? '+' : ''}${c.portfolioChangePct.toFixed(1)}% since last update)
+Level: ${c.currentLevel}/${c.totalLevels} — "${c.currentLevelName}"
+Progress to next level: ${c.progressPercent.toFixed(1)}% (${fmt(c.amountToNextLevel)} away from "${c.nextLevelName ?? 'final goal'}")
+Days to next level at current pace: ${c.daysToNextLevel === 999 ? 'unknown' : `~${c.daysToNextLevel} days`}
+Pace: ${pace}
+Login streak: ${c.loginStreak} days (best: ${c.bestStreak})
+Days since portfolio update: ${c.daysSinceLastUpdate}
 
-YOUR VOICE:
-- Direct, warm, specific. Never fluffy.
-- Max 2–3 sentences. Never more.
-- Reference at least one real number from their data.
-- No emojis in message text — keep it grounded and human.
-- Never give financial advice (no buy/sell recommendations).
-- Be honest. If they're behind, say so — don't spin it.
-- This message must feel like it could ONLY exist for ${c.name}, on this exact day.
+TRIGGER: ${c.trigger}
+${c.trigger === 'near_level'       ? 'User is >90% to the next level — hype them up!' : ''}
+${c.trigger === 'streak_milestone' ? `User just hit a ${c.loginStreak}-day streak — celebrate it!` : ''}
+${c.trigger === 'portfolio_drop'   ? 'Portfolio dropped — be honest but encouraging.' : ''}
+${c.trigger === 'behind_pace'      ? 'User is behind pace — motivate, suggest one concrete action.' : ''}
+${c.trigger === 're_engagement'    ? `User hasn't updated in ${c.daysSinceLastUpdate} days — welcome back warmly.` : ''}
+${c.trigger === 'daily'            ? 'Daily check-in — be fresh, energetic, specific to their data.' : ''}
+${c.trigger === 'chat'             ? 'Conversational reply — answer directly, be concise.' : ''}
 
-TRIGGER GUIDE:
-- daily: energising, forward-looking, reference their closest milestone
-- level_up: pure celebration, name the level and what it means for their goal
-- near_level: urgency — name the exact dollar amount left
-- behind_pace: honest + one specific, actionable nudge (e.g. "adding $X/month closes the gap in Y weeks")
-- portfolio_drop: grounding + perspective, not dismissive of the pain
-- streak_milestone: recognise it, immediately challenge the next rung
-- re_engagement: warm and curious, zero guilt-tripping
-- chat: conversational, use their numbers to answer their question directly`;
+RULES
+- 1-3 sentences for daily/trigger messages. For chat: conversational, no length limit.
+- Use ${c.name}'s first name once, naturally.
+- Reference their actual numbers — no generic advice.
+- Tone: direct, confident, real friend energy. Never corporate or preachy.
+- No asterisks, no markdown. Plain sentences only.
+- Never give specific buy/sell investment advice.`;
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' },
-    });
-  }
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+type GeminiPart = { text: string };
+type GeminiContent = { role: 'user' | 'model'; parts: GeminiPart[] };
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return new Response(JSON.stringify({ message: null, error: 'ANTHROPIC_API_KEY not configured' }), {
-      status: 503, headers: { 'Content-Type': 'application/json' },
-    });
+export default async function handler(req: Request): Promise<Response> {
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type' };
+
+  if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+
+  // Read API key from env (Edge runtime exposes env via globalThis)
+  const apiKey: string | undefined =
+    (typeof (globalThis as Record<string,unknown>)['GEMINI_API_KEY'] === 'string'
+      ? (globalThis as Record<string,unknown>)['GEMINI_API_KEY']
+      : undefined) as string | undefined;
+
+  if (!apiKey) {
+    return Response.json(
+      { message: "Kai is offline — add your free GEMINI_API_KEY in Vercel → Settings → Environment Variables to activate coaching." },
+      { status: 200, headers: cors }
+    );
   }
+
+  let body: CoachRequest;
+  try { body = await req.json(); }
+  catch { return Response.json({ error: 'Invalid JSON' }, { status: 400, headers: cors }); }
+
+  // Build conversation contents
+  const contents: GeminiContent[] = [];
+  if (body.trigger === 'chat' && body.history && body.history.length > 0) {
+    for (const msg of body.history) {
+      contents.push({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] });
+    }
+  } else {
+    contents.push({ role: 'user', parts: [{ text: body.userMessage ?? `Give me a ${body.trigger} message based on my status.` }] });
+  }
+
+  const payload = {
+    system_instruction: { parts: [{ text: buildSystem(body) }] },
+    contents,
+    generationConfig: { maxOutputTokens: 220, temperature: 0.85 },
+  };
 
   try {
-    const body: CoachRequest = await req.json();
-    const system = buildSystem(body);
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+    );
 
-    // Build messages array
-    const history = body.history ?? [];
-    const messages: { role: 'user' | 'assistant'; content: string }[] =
-      body.trigger === 'chat' && history.length > 0
-        ? history
-        : [{ role: 'user', content: 'Generate my coaching message for today.' }];
+    if (!res.ok) {
+      console.error('Gemini error:', await res.text());
+      return Response.json({ error: `Gemini ${res.status}` }, { status: 502, headers: cors });
+    }
 
-    const response = await client.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 220,
-      system,
-      messages,
-    });
+    const data = await res.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    const message = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!message) return Response.json({ error: 'Empty Gemini response' }, { status: 502, headers: cors });
 
-    const message = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    return new Response(JSON.stringify({ message }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    return Response.json({ message }, { headers: { ...cors, 'Cache-Control': 'no-store' } });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    return new Response(JSON.stringify({ message: null, error: msg }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('Kai error:', err);
+    return Response.json({ error: 'Internal error' }, { status: 500, headers: cors });
   }
 }

@@ -372,7 +372,7 @@ export function Onboarding() {
   const [goalType, setGoalType] = useState<GoalType>('home');
   const [answers, setAnswers]   = useState<{ targetAmount: number; timelineYears: number; monthlyContribution: number; details: string } | null>(null);
 
-  const { completeOnboarding } = useGameStore();
+  const { completeOnboarding, toggleTheme, theme } = useGameStore();
   const meta = GOAL_META[goalType];
 
   const goal: UserGoal | null = answers
@@ -400,6 +400,13 @@ export function Onboarding() {
         <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-5"
           style={{ background: '#8b5cf6' }} />
       </div>
+
+      {/* Theme toggle */}
+      <button onClick={toggleTheme}
+        className="fixed top-4 right-4 btn btn-ghost text-[16px] px-2.5 py-1.5 z-10"
+        title="Toggle light/dark">
+        {theme === 'dark' ? '☀️' : '🌙'}
+      </button>
 
       <div className="relative w-full max-w-md">
         {step === 'goal' && (

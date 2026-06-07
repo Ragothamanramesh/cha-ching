@@ -373,8 +373,8 @@ function PortfolioInput({ value, onChange }: { value: number; onChange: (v: numb
 export function ArenaDashboard() {
   const {
     profile, userName, userGoal, generatedLevels,
-    showLevelUp, levelUpTo, newBadgeIds,
-    setPortfolioValue, recordLogin, dismissLevelUp, dismissNewBadges, resetAll,
+    showLevelUp, levelUpTo, newBadgeIds, theme,
+    setPortfolioValue, recordLogin, dismissLevelUp, dismissNewBadges, toggleTheme, resetAll,
   } = useGameStore();
 
   const [kaiOpen, setKaiOpen] = useState(false);
@@ -413,6 +413,9 @@ export function ArenaDashboard() {
                 <span className="text-[11px] font-bold" style={{ color:'#f97316' }}>{profile.loginStreak}d</span>
               </div>
             )}
+            <button onClick={toggleTheme} className="btn btn-ghost text-[14px] px-2.5 py-1.5" title="Toggle light/dark">
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
             <button onClick={resetAll} className="btn btn-ghost text-[10px] px-2 py-1" title="Reset (dev)">↺</button>
           </div>
         </div>

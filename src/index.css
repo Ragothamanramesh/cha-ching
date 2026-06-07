@@ -6,20 +6,56 @@
    CHA-CHING — DESIGN TOKENS
    Dark casino aesthetic: deep navy base + neon accents + gold
    ══════════════════════════════════════════════════════════════════ */
-:root {
+/* ── Dark theme (default) ───────────────────────────────────────── */
+:root, [data-theme="dark"] {
   --bg:       #0d0f18;
   --surface:  #131620;
   --card:     #181c2a;
+  --card-sm:  #1e2233;
+  --inset:    rgba(0,0,0,0.28);
   --border:   rgba(255,255,255,0.07);
   --text:     #eef2f8;
   --muted:    #8892a4;
   --dim:      #3d4459;
+  --shadow:   rgba(0,0,0,0.5);
 
   --gold:     #fbbf24;
   --green:    #30d158;
   --red:      #ff453a;
   --blue:     #3b82f6;
   --purple:   #8b5cf6;
+
+  --btn-ghost-bg:     rgba(255,255,255,0.06);
+  --btn-ghost-hover:  rgba(255,255,255,0.11);
+  --btn-ghost-text:   #8892a4;
+  --scrollbar:        rgba(255,255,255,0.08);
+  --shimmer:          rgba(255,255,255,0.13);
+}
+
+/* ── Light theme ─────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:       #f0f2f8;
+  --surface:  #e8eaf2;
+  --card:     #ffffff;
+  --card-sm:  #f5f6fa;
+  --inset:    rgba(0,0,0,0.05);
+  --border:   rgba(0,0,0,0.09);
+  --text:     #111827;
+  --muted:    #6b7280;
+  --dim:      #9ca3af;
+  --shadow:   rgba(0,0,0,0.12);
+
+  --gold:     #d97706;
+  --green:    #16a34a;
+  --red:      #dc2626;
+  --blue:     #2563eb;
+  --purple:   #7c3aed;
+
+  --btn-ghost-bg:     rgba(0,0,0,0.05);
+  --btn-ghost-hover:  rgba(0,0,0,0.10);
+  --btn-ghost-text:   #6b7280;
+  --scrollbar:        rgba(0,0,0,0.12);
+  --shimmer:          rgba(255,255,255,0.55);
 }
 
 @layer base {
@@ -32,28 +68,32 @@
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
     font-size: 13px;
     min-height: 100vh;
+    transition: background 0.25s, color 0.25s;
   }
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
 }
 
-/* ── Neumorphic-style cards ─────────────────────────────────────── */
+/* ── Cards & Controls ───────────────────────────────────────────── */
 @layer utilities {
   .card {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 20px;
+    box-shadow: 0 2px 12px var(--shadow);
+    transition: background 0.25s, border-color 0.25s;
   }
   .card-sm {
-    background: var(--card);
+    background: var(--card-sm);
     border: 1px solid var(--border);
     border-radius: 14px;
+    transition: background 0.25s, border-color 0.25s;
   }
   .inset {
-    background: rgba(0,0,0,0.25);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: var(--inset);
+    border: 1px solid var(--border);
     border-radius: 10px;
   }
   .btn {
@@ -62,20 +102,20 @@
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.15s;
+    transition: opacity 0.15s, transform 0.15s, background 0.15s;
     border: none;
   }
   .btn:active { transform: scale(0.97); }
   .btn-primary {
     background: var(--green);
-    color: #0a1a0f;
+    color: #fff;
   }
   .btn-ghost {
-    background: rgba(255,255,255,0.06);
-    color: var(--muted);
+    background: var(--btn-ghost-bg);
+    color: var(--btn-ghost-text);
     border: 1px solid var(--border);
   }
-  .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+  .btn-ghost:hover { background: var(--btn-ghost-hover); }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -168,10 +208,36 @@
 }
 
 /* Ambient background */
-.cc-bg {
+[data-theme="dark"] .cc-bg {
   background:
     radial-gradient(ellipse at 80% 0%,   rgba(139,92,246,0.06) 0%, transparent 50%),
     radial-gradient(ellipse at 5%  90%,  rgba(6,182,212,0.04)  0%, transparent 50%),
     radial-gradient(ellipse at 50% 50%,  rgba(251,191,36,0.02) 0%, transparent 70%),
     var(--bg);
+}
+[data-theme="light"] .cc-bg {
+  background:
+    radial-gradient(ellipse at 80% 0%,   rgba(124,58,237,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 5%  90%,  rgba(6,182,212,0.04)  0%, transparent 50%),
+    var(--bg);
+}
+.cc-bg { transition: background 0.3s; }
+
+/* Light mode: darken text in gray utility classes */
+[data-theme="light"] .text-gray-300 { color: #374151 !important; }
+[data-theme="light"] .text-gray-400 { color: #4b5563 !important; }
+[data-theme="light"] .text-gray-500 { color: #6b7280 !important; }
+[data-theme="light"] .text-gray-600 { color: #9ca3af !important; }
+[data-theme="light"] .text-gray-700 { color: #d1d5db !important; }
+[data-theme="light"] .text-white    { color: #111827 !important; }
+
+/* Light mode: header & drawer backgrounds */
+[data-theme="light"] header[style*="rgba(13,15,24"] {
+  background: rgba(240,242,248,0.93) !important;
+}
+
+.cc-shimmer-bar {
+  background: linear-gradient(90deg, transparent 0%, var(--shimmer) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: cc-shimmer 2.2s linear infinite;
 }

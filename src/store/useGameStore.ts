@@ -22,6 +22,9 @@ interface GameState {
   kaiChat: KaiChatMessage[];
   kaiLoading: boolean;
 
+  // ── Theme ─────────────────────────────────────────────────────────────
+  theme: 'dark' | 'light';
+
   // ── Actions ───────────────────────────────────────────────────────────
   completeOnboarding: (name: string, goal: UserGoal) => void;
   setPortfolioValue: (value: number) => void;
@@ -33,6 +36,7 @@ interface GameState {
   setKaiLoading: (v: boolean) => void;
   addKaiChat: (msg: KaiChatMessage) => void;
   clearKaiChat: () => void;
+  toggleTheme: () => void;
   resetAll: () => void;
 }
 
@@ -73,6 +77,7 @@ export const useGameStore = create<GameState>()(
       kaiDaily: null,
       kaiChat: [],
       kaiLoading: false,
+      theme: 'dark',
 
       completeOnboarding: (name, goal) => {
         const levels = generateLevels(goal);
@@ -130,10 +135,16 @@ export const useGameStore = create<GameState>()(
       addKaiChat:   (msg) => set(s => ({ kaiChat: [...s.kaiChat.slice(-40), msg] })),
       clearKaiChat: ()    => set({ kaiChat: [] }),
 
+      toggleTheme: () => set(s => {
+        const next = s.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        return { theme: next };
+      }),
+
       resetAll: () => set({
         onboardingComplete: false, userName: '', userGoal: null, generatedLevels: [],
         profile: DEFAULT_PROFILE, showLevelUp: false, levelUpTo: 1, newBadgeIds: [],
-        kaiDaily: null, kaiChat: [], kaiLoading: false,
+        kaiDaily: null, kaiChat: [], kaiLoading: false, theme: 'dark',
       }),
     }),
     { name: 'cha-ching-v2', version: 2 },
