@@ -1,0 +1,4 @@
+{
+  "projectName": "cha-ching",
+  "notes": "Standalone gamified trading app. All state in localStorage via Zustand persist. No backend required for MVP. Robinhood OAuth to be wired in backend/gamification/ later."
+}
