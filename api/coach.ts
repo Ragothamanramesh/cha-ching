@@ -8,6 +8,8 @@ interface KaiChatMessage { role: 'user' | 'assistant'; content: string; }
 
 interface CoachRequest {
   name: string;
+  avatarName?: string;
+  avatarVibe?: string;
   goalTitle: string;
   goalDescription?: string;
   targetAmount: number;
@@ -51,6 +53,7 @@ Think: smart friend who actually knows money stuff but talks like a real person,
 
 USER
 Name: ${firstName}
+${c.avatarName ? `Avatar archetype: ${c.avatarName} — "${c.avatarVibe}" (reference this personality when you roast or hype them)` : ''}
 Goal: ${c.goalTitle} — target ${fmt(c.targetAmount)} in ${c.timelineYears}yr${c.timelineYears !== 1 ? 's' : ''}
 
 THEIR CURRENT SITUATION

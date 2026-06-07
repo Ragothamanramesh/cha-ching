@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { GameProfile, UserGoal, Level, KaiMessage, KaiChatMessage, EarnedBadge } from '@/types/gamification';
+import type { GameProfile, UserGoal, Level, KaiMessage, KaiChatMessage, EarnedBadge, GamePhase } from '@/types/gamification';
 import { BADGES } from '@/utils/gamification';
 import { generateLevels, getCurrentLevel } from '@/utils/levelEngine';
 
 interface GameState {
-  // ── Onboarding ──────────────────────────────────────────────────────
-  onboardingComplete: boolean;
+  // ── Game flow ───────────────────────────────────────────────────────
+  phase: GamePhase;            // current screen in the game flow
+  onboardingComplete: boolean; // true once they reach the world the first time
   userName: string;
+  avatarId: string | null;
   userGoal: UserGoal | null;
   generatedLevels: Level[];
 
@@ -22,11 +24,16 @@ interface GameState {
   kaiChat: KaiChatMessage[];
   kaiLoading: boolean;
 
-  // ── Theme ─────────────────────────────────────────────────────────────
+  // ── Prefs ─────────────────────────────────────────────────────────────
   theme: 'dark' | 'light';
+  soundOn: boolean;
+  voiceOn: boolean;
 
   // ── Actions ───────────────────────────────────────────────────────────
-  completeOnboarding: (name: string, goal: UserGoal) => void;
+  setPhase: (p: GamePhase) => void;
+  setUserName: (n: string) => void;
+  setAvatar: (id: string) => void;
+  beginGame: (goal: UserGoal) => void;   // generate levels, enter world
   setPortfolioValue: (value: number) => void;
   recordLogin: () => void;
   dismissLevelUp: () => void;
@@ -37,6 +44,8 @@ interface GameState {
   addKaiChat: (msg: KaiChatMessage) => void;
   clearKaiChat: () => void;
   toggleTheme: () => void;
+  setSoundOn: (v: boolean) => void;
+  setVoiceOn: (v: boolean) => void;
   resetAll: () => void;
 }
 
@@ -66,8 +75,10 @@ function unlockBadges(profile: GameProfile): { updated: GameProfile; newIds: str
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
+      phase: 'title',
       onboardingComplete: false,
       userName: '',
+      avatarId: null,
       userGoal: null,
       generatedLevels: [],
       profile: DEFAULT_PROFILE,
@@ -78,10 +89,16 @@ export const useGameStore = create<GameState>()(
       kaiChat: [],
       kaiLoading: false,
       theme: 'dark',
+      soundOn: true,
+      voiceOn: true,
 
-      completeOnboarding: (name, goal) => {
+      setPhase:    (p) => set({ phase: p }),
+      setUserName: (n) => set({ userName: n }),
+      setAvatar:   (id) => set({ avatarId: id }),
+
+      beginGame: (goal) => {
         const levels = generateLevels(goal);
-        set({ onboardingComplete: true, userName: name, userGoal: goal, generatedLevels: levels });
+        set({ onboardingComplete: true, userGoal: goal, generatedLevels: levels, phase: 'world' });
       },
 
       setPortfolioValue: (value) => {
@@ -140,13 +157,16 @@ export const useGameStore = create<GameState>()(
         document.documentElement.setAttribute('data-theme', next);
         return { theme: next };
       }),
+      setSoundOn: (v) => set({ soundOn: v }),
+      setVoiceOn: (v) => set({ voiceOn: v }),
 
       resetAll: () => set({
-        onboardingComplete: false, userName: '', userGoal: null, generatedLevels: [],
+        phase: 'title', onboardingComplete: false, userName: '', avatarId: null,
+        userGoal: null, generatedLevels: [],
         profile: DEFAULT_PROFILE, showLevelUp: false, levelUpTo: 1, newBadgeIds: [],
-        kaiDaily: null, kaiChat: [], kaiLoading: false, theme: 'dark',
+        kaiDaily: null, kaiChat: [], kaiLoading: false, theme: 'dark', soundOn: true, voiceOn: true,
       }),
     }),
-    { name: 'cha-ching-v2', version: 2 },
+    { name: 'cha-ching-v3', version: 3 },
   ),
 );

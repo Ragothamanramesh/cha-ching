@@ -4,7 +4,28 @@ export type GoalType = 'home' | 'car' | 'retirement' | 'debt' | 'travel' | 'busi
 export type PaceStatus = 'ahead' | 'on_track' | 'behind';
 export type KaiTrigger =
   | 'daily' | 'level_up' | 'near_level' | 'behind_pace'
-  | 'portfolio_drop' | 'streak_milestone' | 're_engagement' | 'chat';
+  | 'portfolio_drop' | 'streak_milestone' | 're_engagement' | 'chat'
+  | 'intro';
+
+// ── Game flow phases ────────────────────────────────────────────────────────────
+export type GamePhase =
+  | 'title'      // cold open splash
+  | 'intro'      // Kai's dark-comedy story intro
+  | 'avatar'     // pick your character
+  | 'goal'       // what's your money goal
+  | 'numbers'    // target / timeline / monthly
+  | 'reveal'     // era ladder reveal
+  | 'world';     // the live game world
+
+// ── Avatar ──────────────────────────────────────────────────────────────────────
+export interface Avatar {
+  id: string;
+  emoji: string;
+  name: string;          // archetype name
+  vibe: string;          // one-liner personality
+  color: string;
+  glow: string;
+}
 
 // ── Goal ───────────────────────────────────────────────────────────────────────
 export interface UserGoal {
@@ -77,6 +98,8 @@ export interface KaiChatMessage {
 // ── Coach context sent to API ──────────────────────────────────────────────────
 export interface CoachContext {
   name: string;
+  avatarName?: string;
+  avatarVibe?: string;
   goalTitle: string;
   goalDescription: string;
   targetAmount: number;
