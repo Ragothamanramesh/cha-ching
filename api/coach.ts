@@ -93,15 +93,12 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
 
-  // Read API key from env (Edge runtime exposes env via globalThis)
-  const apiKey: string | undefined =
-    (typeof (globalThis as Record<string,unknown>)['GEMINI_API_KEY'] === 'string'
-      ? (globalThis as Record<string,unknown>)['GEMINI_API_KEY']
-      : undefined) as string | undefined;
+  // Vercel Edge Runtime exposes env vars via process.env
+  const apiKey: string | undefined = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return Response.json(
-      { message: "Kai is offline — add your free GEMINI_API_KEY in Vercel → Settings → Environment Variables to activate coaching." },
+      { message: "kai is offline rn — redeploy after adding GEMINI_API_KEY in Vercel env vars 👀" },
       { status: 200, headers: cors }
     );
   }
