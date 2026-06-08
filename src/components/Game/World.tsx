@@ -8,6 +8,7 @@ import type { Level } from '@/types/gamification';
 import * as sfx from '@/utils/sound';
 import { setVoiceEnabled } from '@/utils/voice';
 import { KaiChatDrawer, KaiBubble } from './KaiCoach';
+import { CoinBurst, useCountUp } from './effects';
 
 /* ── confetti ──────────────────────────────────────────────────────────────── */
 async function boom(color: string) {
@@ -28,16 +29,42 @@ export function World() {
   } = useGameStore();
 
   const [panel, setPanel] = useState<Panel>(null);
+  const [burstKey, setBurstKey] = useState(0);
+  const [burstIntensity, setBurstIntensity] = useState(1);
+  const [climbed, setClimbed] = useState(false);
   const avatar = getAvatar(avatarId);
+  const prevValue = useRef(profile.portfolioValue);
 
   useEffect(() => { recordLogin(); /* eslint-disable-next-line */ }, []);
 
-  // Level-up celebration
+  // Bag-growth juice: coin burst + cash-count sound scaled to the gain
+  useEffect(() => {
+    const prev = prevValue.current;
+    const now = profile.portfolioValue;
+    if (now > prev) {
+      const gainRatio = prev > 0 ? (now - prev) / prev : 1;
+      const intensity = Math.max(0.3, Math.min(1, gainRatio * 2 + 0.3));
+      setBurstIntensity(intensity);
+      setBurstKey(k => k + 1);
+      sfx.cashCount(intensity);
+    } else if (now < prev && prev > 0) {
+      sfx.drop();
+    }
+    prevValue.current = now;
+  }, [profile.portfolioValue]);
+
+  // Animated count-up value
+  const displayValue = useCountUp(profile.portfolioValue);
+
+  // Level-up celebration + avatar climb animation
   useEffect(() => {
     if (showLevelUp) {
       const lvl = generatedLevels.find(l => l.level === levelUpTo);
       sfx.levelUp();
       if (lvl) boom(lvl.color);
+      setClimbed(true);
+      const t = setTimeout(() => setClimbed(false), 1200);
+      return () => clearTimeout(t);
     }
   }, [showLevelUp, levelUpTo, generatedLevels]);
 
@@ -60,8 +87,9 @@ export function World() {
       <div className="cc-hud-top">
         <div className="cc-hud-era" style={{ color: cur.color }}>{cur.emoji} {cur.name}</div>
         <div className="cc-hud-value" style={{ color: cur.color, textShadow: `0 0 20px ${cur.glowColor}` }}>
-          {profile.portfolioValue > 0 ? formatCurrency(profile.portfolioValue) : 'tap 💰 to start'}
+          {profile.portfolioValue > 0 ? formatCurrency(displayValue) : 'tap 💰 to start'}
         </div>
+        <CoinBurst fireKey={burstKey} intensity={burstIntensity} />
         <div className="cc-hud-bar">
           <div className="cc-hud-bar-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${cur.color}99, ${cur.color})`, boxShadow: `0 0 12px ${cur.glowColor}` }}>
             <div className="cc-shimmer-bar" />
@@ -73,7 +101,7 @@ export function World() {
       </div>
 
       {/* ── THE CLIMB ── */}
-      <EraClimb levels={generatedLevels} value={profile.portfolioValue} avatarEmoji={avatar.emoji} avatarColor={avatar.color} />
+      <EraClimb levels={generatedLevels} value={profile.portfolioValue} avatarEmoji={avatar.emoji} avatarColor={avatar.color} climbed={climbed} />
 
       {/* ── CORNER HUD BUTTONS ── */}
       <CornerBtn pos="tl" emoji="🔥" label={`${profile.loginStreak}d`} active={panel === 'stats'}
@@ -104,7 +132,7 @@ export function World() {
 /* ════════════════════════════════════════════════════════════════════════════
    THE CLIMB — vertical era path with avatar
    ════════════════════════════════════════════════════════════════════════════ */
-function EraClimb({ levels, value, avatarEmoji, avatarColor }: { levels: Level[]; value: number; avatarEmoji: string; avatarColor: string }) {
+function EraClimb({ levels, value, avatarEmoji, avatarColor, climbed }: { levels: Level[]; value: number; avatarEmoji: string; avatarColor: string; climbed?: boolean }) {
   const cur = getCurrentLevel(value, levels);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -145,9 +173,9 @@ function EraClimb({ levels, value, avatarEmoji, avatarColor }: { levels: Level[]
                 </div>
                 <div className="cc-climb-era">era {lvl.level}</div>
 
-                {/* Avatar stands on the current node */}
+                {/* Avatar stands on the current node — leaps up on era-up */}
                 {isCur && (
-                  <div className="cc-climb-avatar cc-float" style={{ filter: `drop-shadow(0 0 14px ${avatarColor})` }}>
+                  <div className={`cc-climb-avatar ${climbed ? 'cc-climb-leap' : 'cc-float'}`} style={{ filter: `drop-shadow(0 0 14px ${avatarColor})` }}>
                     {avatarEmoji}
                     <div className="cc-climb-you">you</div>
                   </div>
@@ -204,7 +232,7 @@ function BagPanel({ onClose }: { onClose: () => void }) {
 
   const submit = () => {
     const n = parseFloat(raw.replace(/[^0-9.]/g, ''));
-    if (!isNaN(n) && n >= 0) { setPortfolioValue(n); sfx.chaChing(); }
+    if (!isNaN(n) && n >= 0) { setPortfolioValue(n); onClose(); } // World effect handles growth/drop sound + burst
   };
   const quick = userGoal
     ? [0, userGoal.targetAmount * 0.01, userGoal.targetAmount * 0.05, userGoal.targetAmount * 0.25, userGoal.targetAmount * 0.5, userGoal.targetAmount]
@@ -223,7 +251,7 @@ function BagPanel({ onClose }: { onClose: () => void }) {
       <div className="cc-bag-quicklabel">quick set</div>
       <div className="cc-chip-row">
         {quick.map(d => (
-          <button key={d} className="cc-chip" onClick={() => { sfx.coin(); setPortfolioValue(d); }}
+          <button key={d} className="cc-chip" onClick={() => { setPortfolioValue(d); onClose(); }}
             style={{ background: profile.portfolioValue === d ? cur.color + '20' : 'var(--card)',
               color: profile.portfolioValue === d ? cur.color : 'var(--muted)',
               border: `2px solid ${profile.portfolioValue === d ? cur.color : 'var(--border)'}` }}>

@@ -112,6 +112,21 @@ export function coin() {
   tone({ freq: 1318, type: 'square', start: 0.06, dur: 0.12, vol: 0.16 });
 }
 
+// 💸 Cash-counting cascade — rapid rising coin pings, then a cha-ching cap.
+//    intensity 0..1 scales how many pings (bigger gains = longer cascade)
+export function cashCount(intensity = 0.5) {
+  if (muted) return;
+  const n = Math.max(4, Math.min(12, Math.round(4 + intensity * 8)));
+  const base = 700;
+  for (let i = 0; i < n; i++) {
+    tone({ freq: base + i * 70, type: 'square', start: i * 0.045, dur: 0.06, vol: 0.10 });
+  }
+  // cap it with the signature ching
+  const end = n * 0.045;
+  tone({ freq: 1046, type: 'triangle', start: end, dur: 0.4, vol: 0.26 });
+  tone({ freq: 1568, type: 'sine',     start: end + 0.02, dur: 0.45, vol: 0.16 });
+}
+
 // 🔘 Soft UI click / tap
 export function click() {
   if (muted) return;
